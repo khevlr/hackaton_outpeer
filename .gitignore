@@ -3,3 +3,30 @@
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
+*.py[cod]
+*$py.class
+
+# Caches
+*.log
+*.pot
+*.pyc
+*.pyo
+*.pyd
+*.db
+
+# VS Code и другие IDE
+.vscode/
+.idea/
+
+# Mac OS
+.DS_Store
+
+# Папки виртуальных окружений
+venv/
+env/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Папка с зависимостями
+node_modules/
