@@ -61,55 +61,8 @@ def extract_resume_skills(resume_file, vacancy_name):
         ]
     )
     return response.choices[0].message.content
-        
 
-def find_main_text_block(soup):
-    candidates = soup.find_all(['article', 'main', 'section', 'div'])
-    best_block = ""
-    max_score = 0
-
-    for tag in candidates:
-        text = tag.get_text(separator="\n", strip=True)
-        score = len(text)
-        if score > max_score and score > 100: 
-            max_score = score
-            best_block = text
-
-    return best_block if best_block else soup.get_text(separator="\n", strip=True)
-
-
-def get_page_content(url):
-    chrome_options = Options()
-    chrome_options.add_argument("--headless") 
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
-
-    try:
-        driver.get(url)
-        time.sleep(5) 
-
-        page_content = driver.page_source
-        soup = BeautifulSoup(page_content, "html.parser")
-
-        return find_main_text_block(soup)
-    finally:
-        driver.quit()
-
-
-def analyze_vacancy(vacancy_text):
-    response = openai.chat.completions.create(
-        model="gpt-4o-mini",
-        messages = [
-            {"role": "system", "content": "Ты эксперт в аналитике резюме и вакансий."},
-            {"role": "user", "content": VACANCY_ANALYSIS_PROMPT.format(vacancy_text=vacancy_text)}
-        ]
-    )
-    return json.loads(response.choices[0].message.content)
-
-
-def roberta_similarity(text):
+def roberta_embeddings(text):
     tokenized_data = tokenizer(text, padding=True, truncation=True, return_tensors='pt')
     inputs = {k: v for k, v in tokenized_data.items()}
     with torch.no_grad():
@@ -144,7 +97,7 @@ def find_vacancy_for_resume(resume_json):
     for file in os.listdir('vacancies'):
         with open('vacancies/' + file, 'r') as f:
             vacancy_data = json.load(f)
-        semantic_score = calculate_semantic_score(roberta_similarity(vacancy_data['summary']), roberta_similarity(resume_json['summary']))
+        semantic_score = calculate_semantic_score(roberta_embeddings(vacancy_data['summary']), roberta_embeddings(resume_json['summary']))
         skills_score = skills_similarity(resume_json['skills'], vacancy_data['skills'])
         total_score = semantic_score * 0.8 + skills_score * 0.2
         similarity_scores.append({

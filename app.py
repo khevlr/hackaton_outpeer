@@ -1,17 +1,7 @@
 import streamlit as st
-import tempfile
 import os
-import json
-import shutil
 import fitz
-from resume_parser_cop import (
-    analyze_resume,
-    extract_resume_skills,
-    test_generator,
-    check_answers,
-    new_resume,
-    roberta_similarity
-)
+from classes import ResumeParser, SemanticAnalyzer, TestGenerator, ResumeOptimizer
 from vector_store import build_vector_db, search_similar_vacancies
 
 # Russian translations dictionary
@@ -131,7 +121,8 @@ def analyze_resume_callback():
     st.session_state.resume_text = "\n".join([page.get_text() for page in doc])
     
     with st.spinner(translate("Analyzing your resume...")):
-        st.session_state.resume_analysis = analyze_resume(st.session_state.resume_path)
+        resume_parser = ResumeParser(st.session_state.resume_path)
+        st.session_state.resume_analysis = resume_parser.resume_text
         st.session_state.resume_analyzed = True
     
     # Ensure vector database is initialized
@@ -139,7 +130,8 @@ def analyze_resume_callback():
     
     with st.spinner(translate("Finding matching vacancies...")):
         # Create embedding for the resume summary
-        resume_embedding = roberta_similarity(st.session_state.resume_analysis["summary"])
+        semantic_analyzer = SemanticAnalyzer()
+        resume_embedding = semantic_analyzer.get_embeddings(st.session_state.resume_analysis["summary"])
         
         # Find similar vacancies using vector search
         similar_vacancies = search_similar_vacancies(resume_embedding, n_results=10)
@@ -193,13 +185,12 @@ def select_vacancy_callback():
         st.session_state.vacancy_display_name = selected_display
     
     with st.spinner(translate("Analyzing resume against selected vacancy...")):
-        st.session_state.skills_analysis = extract_resume_skills(
-            st.session_state.resume_path, 
-            st.session_state.selected_vacancy
-        )
+        resume_parser = ResumeParser(st.session_state.resume_path)
+        st.session_state.skills_analysis = resume_parser.extract_skills_from_resume(st.session_state.selected_vacancy)
     
     with st.spinner(translate("Generating test...")):
-        test_data = test_generator(st.session_state.selected_vacancy)
+        test_generator = TestGenerator(st.session_state.selected_vacancy)
+        test_data = test_generator.generate_test()
         
         # Validate test data structure
         if test_data and isinstance(test_data, list):
@@ -227,7 +218,8 @@ def select_vacancy_callback():
 
 def generate_improved_resume():
     with st.spinner(translate("Generating improved resume for this vacancy...")):
-        improved = new_resume(st.session_state.resume_text, st.session_state.selected_vacancy)
+        resume_optimizer = ResumeOptimizer(st.session_state.resume_text, st.session_state.selected_vacancy)
+        improved = resume_optimizer.optimize_resume()
         st.session_state.improved_resume = improved
 
 def update_answer(i, multiple=False):
@@ -249,7 +241,8 @@ def submit_test():
     true_answers = [question['answer'] for question in st.session_state.test_questions]
     questions_text = [question['question'] for question in st.session_state.test_questions]
     
-    final_score, question_results = check_answers(
+    test_generator = TestGenerator(st.session_state.selected_vacancy)
+    final_score, question_results = test_generator.check_answers(
         st.session_state.user_answers,
         true_answers,
         questions_text

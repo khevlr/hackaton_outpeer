@@ -22,10 +22,8 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 COPY . .
 
 # Expose the port Streamlit runs on
-EXPOSE 8501
-
-# Streamlit-specific environment variables
-ENV STREAMLIT_SERVER_PORT=8501
+EXPOSE 8080
+ENV STREAMLIT_SERVER_PORT=8080
 ENV STREAMLIT_SERVER_HEADLESS=true
 ENV STREAMLIT_SERVER_ENABLECORS=false
 

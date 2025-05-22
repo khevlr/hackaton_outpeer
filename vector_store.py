@@ -1,11 +1,10 @@
 import os
 import json
 import torch
-import numpy as np
 from typing import List, Dict, Any
 import chromadb
 from tqdm import tqdm
-from resume_parser_cop import roberta_similarity
+from resume_parser_cop import roberta_embeddings
 import hashlib
 import pickle
 import time
@@ -93,7 +92,7 @@ def create_embeddings(texts: List[str]) -> List[List[float]]:
     embeddings = []
     
     for text in tqdm(texts, desc="Creating embeddings"):
-        embedding = roberta_similarity(text).numpy().tolist()
+        embedding = roberta_embeddings(text).numpy().tolist()
         embeddings.append(embedding)
     
     return embeddings
